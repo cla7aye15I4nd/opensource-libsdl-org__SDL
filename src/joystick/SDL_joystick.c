@@ -31,8 +31,8 @@
 #include "../events/SDL_events_c.h"
 #include "../video/SDL_sysvideo.h"
 #include "../sensor/SDL_sensor_c.h"
-#include "hidapi/SDL_hidapijoystick_c.h"
 #include "../hidapi/SDL_hidapi_c.h"
+#include "hidapi/SDL_hidapijoystick_c.h"
 
 // This is included in only one place because it has a large static list of controllers
 #include "controller_type.h"
@@ -896,6 +896,7 @@ void SDL_DestroyJoystickDevice(SDL_JoystickDevice *device)
     SDL_free(device->matches);
     SDL_free(device->name);
     SDL_free(device->path);
+    SDL_free(device->container_id);
     SDL_free(device);
 }
 
@@ -2048,6 +2049,10 @@ SDL_Joystick *SDL_OpenJoystick(SDL_JoystickID instance_id)
         if (player_index >= 0) {
             driver->SetPlayerIndex(joystick, player_index);
         }
+    }
+
+    if (device->container_id) {
+        SDL_SetStringProperty(SDL_GetJoystickProperties(joystick), SDL_PROP_JOYSTICK_CONTAINER_ID_STRING, device->container_id);
     }
 
     driver->Update(joystick);
@@ -3999,6 +4004,11 @@ bool SDL_IsXInputDevice(Uint16 vendor_id, Uint16 product_id, const char *path)
     // If device path contains "IG_" then it's an XInput device
     // See: https://docs.microsoft.com/windows/win32/xinput/xinput-and-directinput
     if (path && SDL_strcasestr(path, "IG_") != NULL) {
+        return true;
+    }
+
+    // If the device path has the XUSB interface class GUID then it's an XInput device
+    if (path && SDL_strcasestr(path, "{EC87F1E3-C13B-4100-B5F7-8B84D54260CB}") != NULL) {
         return true;
     }
 
