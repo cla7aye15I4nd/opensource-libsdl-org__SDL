@@ -385,6 +385,9 @@ static void WIN_UpdateFocus(SDL_Window *window, bool expect_focus, LPPOINT pos)
         SDL_ToggleModState(SDL_KMOD_SCROLL, (GetKeyState(VK_SCROLL) & 0x0001) ? true : false);
 
         WIN_UpdateWindowICCProfile(data->window, true);
+
+        // There's no notification when the SDR content brightness changes, so check it here
+        WIN_UpdateDisplaySDRWhiteLevels(SDL_GetVideoDevice());
     } else {
         data->in_window_deactivation = true;
 
@@ -1215,7 +1218,7 @@ LRESULT CALLBACK WIN_WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
     }
 
 #if !defined(SDL_PLATFORM_XBOXONE) && !defined(SDL_PLATFORM_XBOXSERIES)
-    if (WIN_HandleIMEMessage(hwnd, msg, wParam, &lParam, data->videodata)) {
+    if (WIN_HandleIMEMessage(hwnd, msg, wParam, &lParam, data)) {
         return 0;
     }
 #endif
