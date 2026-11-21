@@ -88,6 +88,7 @@ static jmethodID midGetManifestEnvironmentVariables;
 static jmethodID midIsAndroidTV;
 static jmethodID midIsChromebook;
 static jmethodID midIsDeXMode;
+static jmethodID midIsGooglePlayOnPC;
 static jmethodID midIsTablet;
 static jmethodID midOpenURL;
 static jmethodID midRequestPermission;
@@ -656,6 +657,7 @@ JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(nativeSetupJNI)(JNIEnv *env, jclass cl
     midIsAndroidTV = (*env)->GetStaticMethodID(env, mActivityClass, "isAndroidTV", "()Z");
     midIsChromebook = (*env)->GetStaticMethodID(env, mActivityClass, "isChromebook", "()Z");
     midIsDeXMode = (*env)->GetStaticMethodID(env, mActivityClass, "isDeXMode", "()Z");
+    midIsGooglePlayOnPC = (*env)->GetStaticMethodID(env, mActivityClass, "isGooglePlayOnPC", "()Z");
     midIsTablet = (*env)->GetStaticMethodID(env, mActivityClass, "isTablet", "()Z");
     midOpenURL = (*env)->GetStaticMethodID(env, mActivityClass, "openURL", "(Ljava/lang/String;)Z");
     midRequestPermission = (*env)->GetStaticMethodID(env, mActivityClass, "requestPermission", "(Ljava/lang/String;I)V");
@@ -675,6 +677,7 @@ JNIEXPORT void JNICALL SDL_JAVA_INTERFACE(nativeSetupJNI)(JNIEnv *env, jclass cl
         !midIsAndroidTV ||
         !midIsChromebook ||
         !midIsDeXMode ||
+        !midIsGooglePlayOnPC ||
         !midIsTablet ||
         !midOpenURL ||
         !midRequestPermission ||
@@ -2365,6 +2368,12 @@ bool SDL_IsDeXMode(void)
     return (*env)->CallStaticBooleanMethod(env, mActivityClass, midIsDeXMode);
 }
 
+bool SDL_IsGooglePlayOnPC(void)
+{
+    JNIEnv *env = Android_JNI_GetEnv();
+    return (*env)->CallStaticBooleanMethod(env, mActivityClass, midIsGooglePlayOnPC);
+}
+
 static char *GetAndroidAppContextPath(const char *method)
 {
     struct LocalReferenceHolder refs = LocalReferenceHolder_Setup(SDL_FUNCTION);
@@ -3618,7 +3627,9 @@ SDL_FormFactor SDL_GetAndroidDeviceFormFactor(void)
     if (string) {
         const char *utf = (*env)->GetStringUTFChars(env, string, 0);
         if (utf) {
-            if (SDL_strcmp(utf, "tv") == 0) {
+            if (SDL_strcmp(utf, "desktop") == 0) {
+                form_factor = SDL_FORMFACTOR_DESKTOP;
+            } else if (SDL_strcmp(utf, "tv") == 0) {
                 form_factor = SDL_FORMFACTOR_TV;
             } else if (SDL_strcmp(utf, "tablet") == 0) {
                 form_factor = SDL_FORMFACTOR_TABLET;
