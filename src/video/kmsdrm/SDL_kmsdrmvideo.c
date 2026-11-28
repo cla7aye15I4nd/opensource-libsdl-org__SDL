@@ -1738,9 +1738,13 @@ static void KMSDRM_GetModeToSet(SDL_Window *window, drmModeModeInfo *out_mode)
 {
     SDL_VideoDisplay *display = SDL_GetVideoDisplayForWindow(window);
     SDL_DisplayData *dispdata = display->internal;
+    SDL_WindowData *windata = window->internal;
 
     if (window->fullscreen_exclusive) {
         *out_mode = dispdata->fullscreen_mode;
+    } else if (windata->fullscreen) {
+        // Fullscreen desktop windows keep the desktop mode, whatever their windowed size is
+        *out_mode = dispdata->original_mode;
     } else {
         drmModeModeInfo *mode = KMSDRM_GetClosestDisplayMode(display, window->windowed.w, window->windowed.h);
         if (mode) {
@@ -1820,7 +1824,7 @@ bool KMSDRM_CreateSurfaces(SDL_VideoDevice *_this, SDL_Window *window)
     for (int i = 0; i < SDL_arraysize(gbm_formats); i++) {
         const uint32_t surface_fmt = gbm_formats[i].fmt;
 
-        SDL_Log("KMSDRM: Trying format GBM_FORMAT_%s", gbm_formats[i].name);
+        //SDL_Log("KMSDRM: Trying format GBM_FORMAT_%s", gbm_formats[i].name);
 
         if (!KMSDRM_gbm_device_is_format_supported(viddata->gbm_dev, surface_fmt, surface_flags)) {
             SDL_LogWarn(SDL_LOG_CATEGORY_VIDEO, "KMSDRM: GBM_FORMAT_%s is not supported.", gbm_formats[i].name);
@@ -2282,6 +2286,15 @@ void KMSDRM_SetWindowSize(SDL_VideoDevice *_this, SDL_Window *window)
 SDL_FullscreenResult KMSDRM_SetWindowFullscreen(SDL_VideoDevice *_this, SDL_Window *window, SDL_VideoDisplay *display, SDL_FullscreenOp fullscreen)
 {
     SDL_VideoData *viddata = _this->internal;
+    SDL_WindowData *windata = window->internal;
+
+    // The window flags aren't updated until this returns, so remember the state for KMSDRM_GetModeToSet()
+    if (fullscreen == SDL_FULLSCREEN_OP_LEAVE) {
+        windata->fullscreen = false;
+    } else {
+        windata->fullscreen = true;
+    }
+
     if (!viddata->vulkan_mode) {
         KMSDRM_DirtySurfaces(window);
     }
